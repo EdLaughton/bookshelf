@@ -198,19 +198,10 @@ namespace NzbDrone.Core.Download
                 return null;
             }
 
-            var overrides = new IdentificationOverrides
+            return new IdentificationOverrides
             {
                 Author = remoteBook.Author
             };
-
-            // Only set Book override when the grab targeted exactly one book,
-            // so we don't incorrectly force multi-book/omnibus downloads to a single book.
-            if (remoteBook.Books != null && remoteBook.Books.Count == 1)
-            {
-                overrides.Book = remoteBook.Books.First();
-            }
-
-            return overrides;
         }
 
         private bool ValidatePath(TrackedDownload trackedDownload)

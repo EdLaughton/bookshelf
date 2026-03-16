@@ -75,17 +75,10 @@ namespace NzbDrone.Core.MediaFiles
                 return null;
             }
 
-            var overrides = new IdentificationOverrides
+            return new IdentificationOverrides
             {
                 Author = remoteBook.Author
             };
-
-            if (remoteBook.Books != null && remoteBook.Books.Count == 1)
-            {
-                overrides.Book = remoteBook.Books.First();
-            }
-
-            return overrides;
         }
 
         public void Execute(DownloadedBooksScanCommand message)
