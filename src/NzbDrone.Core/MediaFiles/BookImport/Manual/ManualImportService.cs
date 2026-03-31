@@ -228,13 +228,20 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
                 {
                     var item = pair.Item;
                     var decision = pair.Decision;
+                    var explicitBook = item.Book;
+                    var explicitEdition = item.Edition;
 
                     if (decision.Item.Author != null)
                     {
                         item.Author = decision.Item.Author;
                     }
 
-                    if (decision.Item.Book != null)
+                    if (explicitEdition != null)
+                    {
+                        item.Book = explicitBook;
+                        item.Edition = explicitEdition;
+                    }
+                    else if (decision.Item.Book != null)
                     {
                         item.Book = decision.Item.Book;
                         item.Edition = decision.Item.Edition;
