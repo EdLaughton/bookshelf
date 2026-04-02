@@ -5,6 +5,7 @@ using NLog;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Manual;
+using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Qualities;
 using Readarr.Http;
 
@@ -17,18 +18,21 @@ namespace Readarr.Api.V1.ManualImport
         private readonly IBookService _bookService;
         private readonly IEditionService _editionService;
         private readonly IManualImportService _manualImportService;
+        private readonly IProvideBookInfo _bookInfo;
         private readonly Logger _logger;
 
         public ManualImportController(IManualImportService manualImportService,
                                   IAuthorService authorService,
                                   IEditionService editionService,
                                   IBookService bookService,
+                                  IProvideBookInfo bookInfo,
                                   Logger logger)
         {
             _authorService = authorService;
             _bookService = bookService;
             _editionService = editionService;
             _manualImportService = manualImportService;
+            _bookInfo = bookInfo;
             _logger = logger;
         }
 
@@ -65,19 +69,44 @@ namespace Readarr.Api.V1.ManualImport
             return item;
         }
 
+        private Edition ResolveEdition(Book book, string foreignEditionId)
+        {
+            if (foreignEditionId == null)
+            {
+                return null;
+            }
+
+            var edition = _editionService.GetEditionByForeignEditionId(foreignEditionId);
+            if (edition != null)
+            {
+                return edition;
+            }
+
+            if (book?.ForeignBookId == null)
+            {
+                return null;
+            }
+
+            var tuple = _bookInfo.GetBookInfo(book.ForeignBookId);
+            return tuple.Item2.Editions.Value.SingleOrDefault(x => x.ForeignEditionId == foreignEditionId);
+        }
+
         private List<ManualImportResource> UpdateImportItems(List<ManualImportUpdateResource> resources)
         {
             var items = new List<ManualImportItem>();
             foreach (var resource in resources)
             {
+                var book = resource.BookId.HasValue ? _bookService.GetBook(resource.BookId.Value) : null;
+                var edition = ResolveEdition(book, resource.ForeignEditionId);
+
                 items.Add(new ManualImportItem
                 {
                     Id = resource.Id,
                     Path = resource.Path,
                     Name = resource.Name,
                     Author = resource.AuthorId.HasValue ? _authorService.GetAuthor(resource.AuthorId.Value) : null,
-                    Book = resource.BookId.HasValue ? _bookService.GetBook(resource.BookId.Value) : null,
-                    Edition = resource.ForeignEditionId == null ? null : _editionService.GetEditionByForeignEditionId(resource.ForeignEditionId),
+                    Book = book,
+                    Edition = edition,
                     Quality = resource.Quality,
                     ReleaseGroup = resource.ReleaseGroup,
                     IndexerFlags = resource.IndexerFlags,
